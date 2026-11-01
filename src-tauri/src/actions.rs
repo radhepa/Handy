@@ -808,6 +808,7 @@ impl ShortcutAction for TranscribeAction {
                                 let ah_clone = ah.clone();
                                 let paste_time = Instant::now();
                                 let final_text = processed.final_text;
+                                let pasted_text = final_text.clone();
                                 let rm_for_paste = Arc::clone(&rm);
                                 // Taken before the paste thread exists, and so
                                 // before the next session can start.
@@ -832,6 +833,10 @@ impl ShortcutAction for TranscribeAction {
                                                     debug!(
                                                         "Text pasted successfully in {:?}",
                                                         paste_time.elapsed()
+                                                    );
+                                                    crate::edit_learning::watch_after_paste(
+                                                        ah_clone.clone(),
+                                                        pasted_text,
                                                     );
                                                     TranscriptionOutcome::Typed
                                                 }

@@ -87,7 +87,7 @@ function App() {
   const [currentSection, setCurrentSection] =
     useState<SidebarSection>("general");
   const showHistory = useCallback(() => setCurrentSection("history"), []);
-  const { settings, updateSetting } = useSettings();
+  const { settings, updateSetting, refreshSettings } = useSettings();
   const direction = getLanguageDirection(i18n.language);
   const refreshAudioDevices = useSettingsStore(
     (state) => state.refreshAudioDevices,
@@ -192,6 +192,22 @@ function App() {
       unlisten.then((fn) => fn());
     };
   }, [t]);
+
+  // Words learned from the user's corrections land in settings on the Rust
+  // side; refresh so the Custom Words list (and its next save) includes them.
+  useEffect(() => {
+    const unlisten = listen<string[]>("custom-words-learned", (event) => {
+      refreshSettings();
+      toast.success(
+        t("settings.advanced.customWords.learned", {
+          words: event.payload.join(", "),
+        }),
+      );
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [t, refreshSettings]);
 
   // Listen for transcription failures and show a toast.
   // The payload is the backend error message (also logged to handy.log).

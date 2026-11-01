@@ -582,7 +582,12 @@
         "placeholder": "Add a word",
         "add": "Add",
         "remove": "Remove {{word}}",
-        "duplicate": "\"{{word}}\" already exists"
+        "duplicate": "\"{{word}}\" already exists",
+        "learned": "Learned \"{{words}}\" from your edit"
+      },
+      "learnFromEdits": {
+        "label": "Learn From Edits",
+        "description": "When you fix a misheard name or term right after pasting, add it to Custom Words. Reads the text field you pasted into for 12 seconds; only the corrected word is saved."
       },
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",

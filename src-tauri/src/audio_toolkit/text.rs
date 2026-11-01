@@ -15,7 +15,7 @@ fn build_ngram(words: &[&str]) -> String {
         .concat()
 }
 
-fn build_match_key(word: &str) -> String {
+pub(crate) fn build_match_key(word: &str) -> String {
     word.chars()
         .filter(|c| c.is_alphanumeric())
         .flat_map(|c| c.to_lowercase())
@@ -55,7 +55,7 @@ fn build_custom_word_match_keys(word: &str, word_index: usize) -> Vec<CustomWord
     keys
 }
 
-fn is_supported_fuzzy_key(key: &str) -> bool {
+pub(crate) fn is_supported_fuzzy_key(key: &str) -> bool {
     !key.is_empty() && key.chars().all(|c| c.is_ascii_alphanumeric())
 }
 
