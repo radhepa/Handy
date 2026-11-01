@@ -9,6 +9,7 @@ import type {
   StreamTextEvent,
   StreamWorkKind,
 } from "@/bindings";
+import HandyMascot from "@/components/icons/HandyMascot";
 import i18n, { syncLanguageFromSettings } from "@/i18n";
 import type { ModelStateEvent } from "@/lib/types/events";
 import { getLanguageDirection } from "@/lib/utils/rtl";
@@ -258,6 +259,17 @@ const RecordingOverlay: React.FC = () => {
     </button>
   );
 
+  // Sits on the pill while listening; a click brings up the main window.
+  const mascot = (
+    <button
+      className="ov-mascot"
+      aria-label="open Handy"
+      onClick={() => commands.showMainWindowCommand()}
+    >
+      <HandyMascot />
+    </button>
+  );
+
   // dot (left) | waveform (center) | timer + cancel (right) — same structure for
   // pill & panel, so the Live morph is a pure width change.
   const listeningRow = (showTimer: boolean, showCancel: boolean) => (
@@ -302,6 +314,7 @@ const RecordingOverlay: React.FC = () => {
 
     return (
       <div dir={direction} className={`ov-stage ${position}`}>
+        {!working && mascot}
         <div
           key={session}
           className={`scard ${open ? "open" : ""} ${collapsed ? "working" : ""} ${
@@ -357,6 +370,7 @@ const RecordingOverlay: React.FC = () => {
       dir={direction}
       className={`ov-stage ${position} ov-fade ${isVisible ? "show" : ""}`}
     >
+      {!working && mascot}
       <div
         className={`scard compact ${working && isVisible ? "cworking" : ""}`}
       >

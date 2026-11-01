@@ -53,12 +53,19 @@ const OVERLAY_HEIGHT: f64 = 50.0;
 const OVERLAY_STREAM_WIDTH: f64 = 400.0;
 const OVERLAY_STREAM_HEIGHT: f64 = 120.0;
 
+// Extra height for the clickable mascot that sits on the pill while listening
+// (the 36px mascot plus its 6px gap, `.ov-mascot` in RecordingOverlay.css).
+const OVERLAY_MASCOT_HEIGHT: f64 = 44.0;
+
 /// Overlay window size (logical) for a given UI state.
 fn overlay_dimensions(state: &str) -> (f64, f64) {
-    if state == "streaming" {
-        (OVERLAY_STREAM_WIDTH, OVERLAY_STREAM_HEIGHT)
-    } else {
-        (OVERLAY_WIDTH, OVERLAY_HEIGHT)
+    match state {
+        "streaming" => (
+            OVERLAY_STREAM_WIDTH,
+            OVERLAY_STREAM_HEIGHT + OVERLAY_MASCOT_HEIGHT,
+        ),
+        "recording" => (OVERLAY_WIDTH, OVERLAY_HEIGHT + OVERLAY_MASCOT_HEIGHT),
+        _ => (OVERLAY_WIDTH, OVERLAY_HEIGHT),
     }
 }
 
@@ -769,6 +776,29 @@ pub fn emit_levels(app_handle: &AppHandle, levels: &[f32]) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn overlay_makes_room_for_the_mascot_only_while_listening() {
+        assert_eq!(
+            overlay_dimensions("recording"),
+            (OVERLAY_WIDTH, OVERLAY_HEIGHT + OVERLAY_MASCOT_HEIGHT)
+        );
+        assert_eq!(
+            overlay_dimensions("streaming"),
+            (
+                OVERLAY_STREAM_WIDTH,
+                OVERLAY_STREAM_HEIGHT + OVERLAY_MASCOT_HEIGHT
+            )
+        );
+        assert_eq!(
+            overlay_dimensions("transcribing"),
+            (OVERLAY_WIDTH, OVERLAY_HEIGHT)
+        );
+        assert_eq!(
+            overlay_dimensions("processing"),
+            (OVERLAY_WIDTH, OVERLAY_HEIGHT)
+        );
+    }
 
     #[test]
     fn monitor_hit_test_uses_half_open_physical_bounds() {
