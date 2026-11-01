@@ -8,6 +8,7 @@
 
 use std::collections::HashSet;
 
+use natural::phonetics::soundex;
 use strsim::levenshtein;
 
 use crate::audio_toolkit::text::{build_match_key, is_supported_fuzzy_key};
@@ -19,6 +20,8 @@ const MAX_REPLACED_WORDS: usize = 3;
 const MAX_CHANGED_WORDS: usize = 64;
 /// Normalized edit distance above which a replacement is a different word.
 const MAX_EDIT_RATIO: f64 = 0.4;
+/// Looser limit when both spellings sound alike ("Makari" -> "McCarrie").
+const MAX_SOUND_ALIKE_EDIT_RATIO: f64 = 0.6;
 /// Shortest learnable word; shorter ones would fuzzy-match too much.
 const MIN_WORD_CHARS: usize = 4;
 
@@ -149,7 +152,16 @@ fn correction(
     }
     let max_len = old_key.chars().count().max(new_key.chars().count()) as f64;
     let ratio = levenshtein(&old_key, &new_key) as f64 / max_len;
-    (ratio <= MAX_EDIT_RATIO).then(|| word.to_string())
+    let sound_alike = [&old_key, &new_key]
+        .iter()
+        .all(|k| k.chars().all(|c| c.is_ascii_alphabetic()))
+        && soundex(&old_key, &new_key);
+    let limit = if sound_alike {
+        MAX_SOUND_ALIKE_EDIT_RATIO
+    } else {
+        MAX_EDIT_RATIO
+    };
+    (ratio <= limit).then(|| word.to_string())
 }
 
 // shortcut: guesses "name or jargon" from shape (a digit, an inner or mid-sentence
@@ -191,8 +203,11 @@ mod watch {
     use super::find_corrections;
     use crate::settings::{get_settings, write_settings};
 
-    /// How long after a paste edits are still attributed to it.
-    const WATCH_FOR: Duration = Duration::from_secs(12);
+    /// Stop watching once the field goes this long without a change, so a run
+    /// of fixes keeps the watch open but walking away ends it.
+    const IDLE_FOR: Duration = Duration::from_secs(10);
+    /// Hard cap on how long after a paste edits are still attributed to it.
+    const WATCH_AT_MOST: Duration = Duration::from_secs(60);
     const POLL_EVERY: Duration = Duration::from_millis(500);
     /// Reliable paste lands asynchronously; give the field this long to show it.
     const PASTE_ARRIVAL_TRIES: usize = 10;
@@ -230,16 +245,22 @@ mod watch {
         // Judge only where the text finally settled (two polls in a row agree,
         // field not cleared by sending), so half-typed words and the in-between
         // states of a rewrite ("non-profit" -> "non-profitable" -> ...) never count.
-        let deadline = Instant::now() + WATCH_FOR;
-        let mut last: Option<String> = None;
+        let started = Instant::now();
+        let mut last_change = started;
+        let mut last = before.clone();
         let mut settled: Option<String> = None;
-        while Instant::now() < deadline && field.still_focused() {
+        while last_change.elapsed() < IDLE_FOR
+            && started.elapsed() < WATCH_AT_MOST
+            && field.still_focused()
+        {
             thread::sleep(POLL_EVERY);
             let Some(after) = field.text() else { break };
-            if last.as_deref() == Some(after.as_str()) && !after.trim().is_empty() {
+            if after != last {
+                last_change = Instant::now();
+            } else if !after.trim().is_empty() {
                 settled = Some(after.clone());
             }
-            last = Some(after);
+            last = after;
         }
         settled
             .map(|after| find_corrections(pasted, &before, &after))
@@ -352,6 +373,18 @@ mod tests {
         let before = "Dear Ongoneyo, hello there";
         let after = "Dear Ongonyo, hello there";
         assert!(find_corrections(pasted, before, after).is_empty());
+    }
+
+    #[test]
+    fn learns_several_fixes_at_once() {
+        let pasted = "Felix arrived in the city of Baco to face the feared Bellbottom clan, \
+                      the Fear Makari clan, and also Batharan.";
+        let after = "Felix arrived in the city of Bako to face the feared Bellbottom clan, \
+                     the Fear McCarrie clan, and also Betharan.";
+        assert_eq!(
+            find_corrections(pasted, pasted, after),
+            vec!["Bako", "McCarrie", "Betharan"]
+        );
     }
 
     #[test]

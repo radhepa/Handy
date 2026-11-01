@@ -587,7 +587,7 @@
       },
       "learnFromEdits": {
         "label": "Learn From Edits",
-        "description": "When you fix a misheard name or term right after pasting, add it to Custom Words. Reads the text field you pasted into for 12 seconds; only the corrected word is saved."
+        "description": "When you fix a misheard name or term right after pasting, add it to Custom Words. Reads the text field you pasted into until you stop editing for 10 seconds; only the corrected word is saved."
       },
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",
